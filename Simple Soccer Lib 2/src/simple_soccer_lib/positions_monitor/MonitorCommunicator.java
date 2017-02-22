@@ -7,6 +7,7 @@ import java.util.regex.*;
 
 import simple_soccer_lib.PlayerCommander;
 import simple_soccer_lib.perception.FieldPerception;
+import simple_soccer_lib.perception.MatchPerception;
 import simple_soccer_lib.perception.ParsePerception;
 import simple_soccer_lib.perception.PlayerPerception;
 import simple_soccer_lib.utils.Patterns;
@@ -50,7 +51,7 @@ public class MonitorCommunicator {
 	}
 
 	// This is main method, that should be called regularly
-	public boolean update(FieldPerception field) throws IOException {
+	public boolean update(FieldPerception field, MatchPerception match) throws IOException {
 		byte[] buffer = new byte[MSG_SIZE];
 		DatagramPacket packet = new DatagramPacket(buffer, MSG_SIZE);
 
@@ -59,7 +60,8 @@ public class MonitorCommunicator {
 		boolean hasPerceptions = parser.parse(buffer); 
 		
 		if (hasPerceptions) {
-			field.overwrite( parser.getFieldPerception() );			
+			field.overwrite( parser.getFieldPerception() );		
+			match.overwrite( parser.getMatchPerception() );
 			return true;
 		}
 

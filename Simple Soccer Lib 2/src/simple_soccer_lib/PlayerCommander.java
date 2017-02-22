@@ -6,6 +6,7 @@ import java.net.UnknownHostException;
 
 import simple_soccer_lib.comm.KrisletCommunicator;
 import simple_soccer_lib.perception.FieldPerception;
+import simple_soccer_lib.perception.MatchPerception;
 import simple_soccer_lib.perception.PlayerPerception;
 import simple_soccer_lib.positions_monitor.MonitorCommunicator;
 import simple_soccer_lib.utils.Vector2D;
@@ -38,9 +39,9 @@ public class PlayerCommander extends Thread {
 	private boolean selfConsumed;   //MANTER apenas se for retornar a cópia
 	private FieldPerception field;  //as informacoes sobre os objetos móveis do campo: bola e outros jogadores
 	private boolean fieldConsumed;
-
-	//private MatchInfo matchInfo;
-	
+	private MatchPerception match; // as informacoes sobre a partida: nome dos times, placar, lado do campo, tempo e estado do jogo
+	private boolean matchConsumed;
+		
 	private Vector2D viewDirection; //direção absoluta da visão, necessária para algumas ações de alto nível
 	
 	private long nextActionTime;
@@ -57,7 +58,8 @@ public class PlayerCommander extends Thread {
 		
 		this.self = new PlayerPerception();
 		this.field = new FieldPerception();
-		this.selfConsumed = this.fieldConsumed = true;
+		this.match = new MatchPerception();
+		this.selfConsumed = this.fieldConsumed = this.matchConsumed = true;
 		this.start();
 	}
 	
@@ -93,20 +95,21 @@ public class PlayerCommander extends Thread {
 						communicator.update(null, null); //para ignorar as percepções lidas						
 						
 						boolean hasNewPerceptions = 
-								perceiver.update(field);
+								perceiver.update(field, match);
 						
 						if (hasNewPerceptions) {
 							self = field.getTeamPlayer(teamName, uniformNumber);
 							
 							this.selfConsumed = false;
 							this.fieldConsumed = false;
+							this.matchConsumed = false;
 							
 							//if (self.getDirection() != null) {
 							this.viewDirection = self.getDirection();
 							//}
 						}
 
-						//printLog();
+//						printLog();
 		
 						// 3. Executar o próximo comando requisitado pelo cliente (se for guardar a proxima acao ou uma fila delas)
 //						if (System.currentTimeMillis() >= nextActionTime) {
@@ -132,7 +135,16 @@ public class PlayerCommander extends Thread {
 	}
 	
 	public void printLog(){
-		if(self != null && field != null){
+		if(self != null && field != null && match != null){
+			System.out.println("INFORMACOES DA PARTIDA ------------------");
+			System.out.println("Tempo atual: "+match.getTime());
+			System.out.println("Estado jogo: "+match.getState());
+			System.out.println("Placar: "+match.getTeamAName() +" "+ match.getTeamAScore() +" x "+ match.getTeamBScore() +" "+ match.getTeamBName());
+			System.out.println("Lado time A: "+match.getTeamASide());
+			System.out.println("Lado time B: "+match.getTeamBSide());
+			System.out.println();
+			
+			System.out.println("INFORMACOES DO JOGADOR ------------------");
 			System.out.println("Tempo atual: "+ field.getTime());
 			System.out.println("Numero jogador: "+ self.getUniformNumber());
 			System.out.println("Time jogador: "+ self.getTeam());
@@ -192,6 +204,28 @@ public class PlayerCommander extends Thread {
 			f = perceiveField();
 		}
 		return f;
+	}
+	
+	synchronized public MatchPerception perceiveMatch() {
+		if (matchConsumed) {
+			return null;
+		}
+		MatchPerception m = this.match;
+		//field = null;
+		matchConsumed = true;
+		return m; //.copy();
+	}
+	public MatchPerception perceiveMatchBlocking() {
+		MatchPerception m = perceiveMatch();
+		while (m == null) {   //atencao: risco de live lock, ideia: criar um semaforo apenas para as percepções
+			try {
+				Thread.sleep(WAIT_TIME/2);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			m = perceiveMatch();
+		}
+		return m;
 	}
 	
 
@@ -384,7 +418,5 @@ public class PlayerCommander extends Thread {
 	public void disconnect() {
 		communicator.bye();
 	}
-
-	
 }
 

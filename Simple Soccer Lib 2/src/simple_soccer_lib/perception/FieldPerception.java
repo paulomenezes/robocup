@@ -34,6 +34,11 @@ public class FieldPerception {
 	public ArrayList<PlayerPerception> getAllPlayers() {
 		return players;
 	}
+	
+	public void setAllPlayers(ArrayList<PlayerPerception> players){
+		this.players.clear();
+		this.players.addAll(players);
+	}
 
 	public ArrayList<PlayerPerception> getTeamPlayers(String teamName) {
 		ArrayList<PlayerPerception> lpp = new ArrayList<PlayerPerception>();
@@ -64,7 +69,7 @@ public class FieldPerception {
 	public PlayerPerception getTeamPlayer(String teamName, int uniformNumber) {
 		ArrayList<PlayerPerception> lpp = new ArrayList<PlayerPerception>();
 		for (PlayerPerception player : players) {
-			if (player.getTeam().equals(teamName)
+			if (player.getTeam() != null && player.getTeam().equals(teamName)
 					&& player.getUniformNumber() == uniformNumber) {
 				return player;
 			}

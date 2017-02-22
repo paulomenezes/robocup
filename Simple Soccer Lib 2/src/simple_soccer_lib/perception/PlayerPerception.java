@@ -12,6 +12,7 @@ public class PlayerPerception extends ObjectPerception {
 	
 	boolean goalie = false;
 	private int side;
+	private int state;
 	
 	public PlayerPerception(PlayerInfo playerInfo) {
 		super();
@@ -21,6 +22,17 @@ public class PlayerPerception extends ObjectPerception {
 		this.direction = null;
 	}
 	
+	public PlayerPerception(Vector2D position, String team, int number,
+			Vector2D direction, boolean goalie, int side, int state) {
+		super();
+		this.team = team;
+		this.number = number;
+		this.direction = direction;
+		this.goalie = goalie;
+		this.side = side;
+		this.state = state;
+	}
+
 	public PlayerPerception() {
 		this.number = 0; //not being able to see number
 	}
@@ -72,6 +84,14 @@ public class PlayerPerception extends ObjectPerception {
 		this.side = side;
 	}
 
+	public int getState() {
+		return state;
+	}
+
+	public void setState(int state) {
+		this.state = state;
+	}
+
 	@Override
 	public String toString(){
 		return "Team:	"+team+
@@ -79,5 +99,17 @@ public class PlayerPerception extends ObjectPerception {
 				"\nGoalie:	"+goalie+
 				"\nDirection:	"+direction+
 				"\nSide:	"+side;
+	}
+	
+	public class PlayerStatus {
+		public static final int
+			DISABLE 	= 0,
+			STAND 		= 0x01,
+			KICK		= 0x02,
+			KICK_FAULT 	= 0x04,
+			GOALIE		= 0x08,
+			CATCH		= 0x10,
+			CATCH_FAULT = 0x20,
+			HAS_THE_BALL = 0x441;
 	}
 }

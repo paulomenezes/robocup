@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import simple_soccer_lib.perception.FieldPerception;
+import simple_soccer_lib.perception.MatchPerception;
 import simple_soccer_lib.perception.ObjectPerception;
 import simple_soccer_lib.perception.PlayerPerception;
 import simple_soccer_lib.utils.Vector2D;
@@ -19,6 +20,7 @@ public class MonitorMessageParser {
 	private int nextPosition;
 	
 	private FieldPerception fieldPerception;
+	private MatchPerception matchPerception;
 
 	public MonitorMessageParser() {
 		this.buffer = null;
@@ -34,6 +36,10 @@ public class MonitorMessageParser {
 	
 	public FieldPerception getFieldPerception() {
 		return fieldPerception;
+	}
+	
+	public MatchPerception getMatchPerception(){
+		return matchPerception;
 	}
 
 	/* Reconhece esta struct em C, enviada pelo servidor:
@@ -74,33 +80,50 @@ public class MonitorMessageParser {
 		} showinfo_t;	
  	*/
 	private void parse_showinfo_t() {
+		
+		if(this.fieldPerception == null){
+			this.fieldPerception = new FieldPerception();
+		}
+		
+		if(this.matchPerception == null){
+			this.matchPerception = new MatchPerception();
+		}
+			
 		char pmode = readChar(); //playmode of the game ---> ver valores no manual (pp. 53-54), criar enum e usar em MatchInfo!
 		printn("Game play mode: %d", (int)pmode);
+		this.matchPerception.setState((int)pmode);
 		
 		readChar(); //para pular um byte! porque o o servidor aparentemente adiciona, aqui, um byte de alinhamento, para que a próxima variável comece na proxima "palavra" (16 bytes) da memória
 		
-		String time0 = parse_team_t();
-		String time1 = parse_team_t();
-		
+		parse_team_t(true);		// true para atualizar informacoes do team A
+		parse_team_t(false);	// false para atualizar informacoes do team B
+				
 		ObjectPerception ball = new ObjectPerception();
 		parse_pos_t_Ball(ball);
 		
 		ArrayList<PlayerPerception> players = new ArrayList<>(22);
-		
+				
 		//time 0
-		for (int i = 0; i < 11; i++) {
-			parse_pos_t_Player(time0, players);
+		int i = 0;
+		for (; i < 11; i++) {
+			players.add(new PlayerPerception());
+			parse_pos_t_Player(true, this.matchPerception.getTeamAName(), players.get(i));
 		}
 		
 		//time 1
-		for (int i = 0; i < 11; i++) {
-			parse_pos_t_Player(time1, players);
+		for (; i < 22; i++) {
+			players.add(new PlayerPerception());
+			parse_pos_t_Player(false, this.matchPerception.getTeamBName(), players.get(i));
 		}
 		
 		short time = readShort();
 		printn("Tempo: %d", time);
 		
-		this.fieldPerception = new FieldPerception(time, players, ball);
+		this.matchPerception.setTime(time);
+		
+		this.fieldPerception.setTime(time);
+		this.fieldPerception.setBall(ball);
+		this.fieldPerception.setAllPlayers(players);
 	}
 
 	/*
@@ -109,11 +132,18 @@ public class MonitorMessageParser {
  		short score;
 	} team_t;
 	*/
-	private String parse_team_t() {
+	private void parse_team_t(boolean isTeamA) {
 		String name = readStringEndedInZero(16);
 		short score = readShort();
 		printn("Nome do time: \"%s\" , Score: %d", name, score);
-		return name;
+		
+		if(isTeamA){
+			this.matchPerception.setTeamAName(name);
+			this.matchPerception.setTeamAScore(score);
+		}else{
+			this.matchPerception.setTeamBName(name);
+			this.matchPerception.setTeamBScore(score);
+		}
 	}
 
 	/*
@@ -146,26 +176,35 @@ public class MonitorMessageParser {
 		ball.setPosition(new Vector2D(getValueScaled(x), getValueScaled(y)));
 	}
 	
-	private void parse_pos_t_Player(String team, List<PlayerPerception> players) {
-		short enable = readShort();
+	private void parse_pos_t_Player(boolean isTeamA, String team, PlayerPerception playerPerception) {
+		short state = readShort();
 		short side = readShort();
 		short unum = readShort();
 		short angle = readShort();
 		short x = readShort();
 		short y = readShort();
 		
-		if (enable == PlayerStatus.DISABLE) {
+		if (state == PlayerStatus.DISABLE) {
 			return;
 		}
 		
-		PlayerPerception player = new PlayerPerception();
-		player.setTeam(team);
-		player.setPosition(new Vector2D(getValueScaled(x), getValueScaled(y)));
-		player.setGoalie(enable == PlayerStatus.GOALIE);
-		player.setUniformNumber(unum);
-		player.setDirection(new Vector2D((double)angle)); 
-		player.setSide(side);
-		players.add(player);
+		if(playerPerception == null){
+			playerPerception = new PlayerPerception();
+		}
+		
+		playerPerception.setDirection(new Vector2D((double)angle));
+		playerPerception.setGoalie(state == PlayerStatus.GOALIE);
+		playerPerception.setPosition(new Vector2D(getValueScaled(x), getValueScaled(y)));
+		playerPerception.setSide(side);
+		playerPerception.setState(state);
+		playerPerception.setTeam(team);
+		playerPerception.setUniformNumber(unum);
+	
+		if(isTeamA){
+			this.matchPerception.setTeamASide(side);
+		}else{
+			this.matchPerception.setTeamBSide(side);
+		}
 	}
 
 	
