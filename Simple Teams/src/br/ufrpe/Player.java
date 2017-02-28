@@ -1,5 +1,6 @@
 package br.ufrpe;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 import simple_soccer_lib.PlayerCommander;
@@ -20,35 +21,7 @@ public class Player extends Thread {
 	private Vector2D initialPosition;
 	private String uuid;
 	
-	/**
-	 * MOVE:							M -25 0			-> X e Y do ponto
-	 * KICK:							K 100 20		-> Intensidade e angulo relativo
-	 * RUN:								R 100			-> Intensidade
-	 * TURN:							T 90			-> Angulo
-	 * TURN TO DIRECTION:               TD  0 1         -> Vetor de direcao X, Y
-	 * TURN TO POINT: 					TTP	-10 5		-> X e Y do ponto
-	 * TURN TO BALL: 					TTB
-	 * RUN TO POINT:					RTP -10 5 3		-> X, Y do ponto e taxa de erro
-	 * RUN TO BALL: 					RTB 3			-> Taxa de erro
-	 * SHOW PLAYER INFO (ALL):			SP
-	 * SHOW PLAYER POSITION:			SPPOS
-	 * SHOW PLAYER DIRECTION:			SPDIR
-	 * SHOW PLAYER TEAM NAME:			SPTEA
-	 * SHOW PLAYER UNIFORM NUMBER:		SPUNI
-	 * SHOW TIME:						STIME
-	 * SHOW QNT. PLAYERS IN VIEW:		SQPLS
-	 * SHOW PLAYER INFO:				SPLIN BTEAM 5	-> Nome do time e numero do jogador
-	 * SHOW QNT. PLAYERS SPECIFC TEAM:	SQPSS BTEAM		-> Nome do time
-	 * SHOW BALL POSITION:				SBPOS
-	 **/
-	
-	/* Observações:
-	 * - Posições bagunçadas do jogador e da bola (Ex: x = -400 e 0);
-	 * - Leitura das percepções do monitor pode estar causando esse erro;
-	 * - Turn 50 seguido de -50 não retorna a posicição
-	 * - Run 100 é andar aproximadamente 1 unidade de distancia, run 50 é andar aproximadamente metade e assim por diante
-	 * - Kick 100 é chutar aproximadamente 40 unidades de distancia, kick 50 é chutar aproximadamente metade e assim por diante.
-	 */
+	private PlayerStatus status;
 	
 	public Player(PlayerCommander player, double x, double y) {
 		commander = player;
@@ -56,55 +29,136 @@ public class Player extends Thread {
 		initialPosition = new Vector2D(x, y);
 		
 		uuid = UUID.randomUUID().toString();
+		
+		status = PlayerStatus.Idle;
 	}
 
 	@Override
 	public void run() {
 		long nextIteration = System.currentTimeMillis() + LOOP_INTERVAL;
 		boolean beforeGame = true;
+		
+		// 52,0 - -52,0
 
 		while (true) {
 			try {
 				updatePerceptions();
 				
 				switch (matchPerc.getState()) {
+					case MatchPerception.MatchState.FREE_KICK_LEFT:
+					case MatchPerception.MatchState.FREE_KICK_RIGHT:
+					case MatchPerception.MatchState.AFTER_GOAL_LEFT:
+					case MatchPerception.MatchState.AFTER_GOAL_RIGHT:
 					case MatchPerception.MatchState.BEFORE_KICK_OFF:
+					case MatchPerception.MatchState.KICK_OFF_LEFT:
+					case MatchPerception.MatchState.KICK_OFF_RIGHT:
 						if (beforeGame) {
+							System.out.println("Move to initial position");
 							commander.doMoveBlocking(initialPosition.getX(), initialPosition.getY());
 							beforeGame = false;
 						}
 
 						break;
-					case MatchPerception.MatchState.KICK_OFF_LEFT:
-						if (selfPerc.getSide() == 1) {
-							if (selfPerc.getUniformNumber() == 2) {
-								runToBall(ERROR);
-
-								if (selfPerc.getState() == PlayerPerception.PlayerStatus.HAS_THE_BALL) {
-									System.out.println("HAS_THE_BALL");
-									PlayerPerception p = fieldPerc.getTeamPlayer(selfPerc.getTeam(), 1);
-									
-									kickToPoint(p.getPosition().getX(), p.getPosition().getY());
-									Memory.kickOffFirstKick = uuid;
-								}
-							} else {
-								turnToBall();
-								commander.doDashBlocking(30.0d);
-							}
-						}
-						break;
 					case MatchPerception.MatchState.PLAY_ON:
-						if (!Memory.isTheFirstKicker(uuid)) {
-							runToBall(ERROR);
-							if (selfPerc.getState() == PlayerPerception.PlayerStatus.HAS_THE_BALL) {
-								PlayerPerception p = fieldPerc.getTeamPlayer(selfPerc.getTeam(), 1);;
-								System.out.println("Has the ball, kick: " + p.getPosition());
+						HasTheBall whoHasTheBall = Memory.teamHasTheBall(fieldPerc, selfPerc.getTeam());
+						
+						switch (status) {
+							case Idle:
+								if (whoHasTheBall == HasTheBall.YourTeam) {
+									status = PlayerStatus.Attack;
+								} else if (whoHasTheBall == HasTheBall.Opponent) {
+									status = PlayerStatus.Steal;
+								} else {
+									status = PlayerStatus.Pursue;
+								}
+								break;
+							case Attack:
+								boolean kickToGoal = true;
 								
-								commander.doKick(100, selfPerc.getPosition().angleFrom(p.getPosition()));
+								if (selfPerc.getState() == PlayerPerception.PlayerStatus.HAS_THE_BALL) {
+									ArrayList<PlayerPerception> myTeam = fieldPerc.getTeamPlayers(selfPerc.getTeam());
+									for (PlayerPerception player : myTeam) {
+										if (player.getPosition() != null) {
+											if (selfPerc.getSide() == 1) {
+												if (player.getPosition().getX() > selfPerc.getPosition().getX() + 5) {
+													kickToPoint(player.getPosition().getX(), player.getPosition().getY());
+													kickToGoal = false;
+													break;
+												}
+											} else {
+												if (player.getPosition().getX() < selfPerc.getPosition().getX() - 5) {
+													kickToPoint(player.getPosition().getX(), player.getPosition().getY());
+													kickToGoal = false;
+													break;
+												}
+											}
+										}
+									}
+								}
 								
-								Memory.kickOffFirstKick = null;								
-							}
+								if (kickToGoal) {
+									if (selfPerc.getSide() == 1)
+										kickToPoint(52, 0);
+									else
+										kickToPoint(-52, 0);
+								}
+
+								runToBall(ERROR);
+								
+								if (whoHasTheBall == HasTheBall. Opponent) {
+									status = PlayerStatus.Steal;
+								} else if (whoHasTheBall == HasTheBall.NoOne) {
+									status = PlayerStatus.Pursue;
+								}
+								
+								break;
+							case Pursue:
+								System.out.println("Pursue: " + Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()));
+								if (Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()) > 15) {
+									status = PlayerStatus.Idle;
+								} else {
+									runToBall(ERROR);
+								}
+								
+								if (whoHasTheBall == HasTheBall.YourTeam) {
+									status = PlayerStatus.Attack;
+								} else if (whoHasTheBall == HasTheBall.Opponent) {
+									status = PlayerStatus.Steal;
+								}
+								
+								break;
+							case Steal:
+								System.out.println("Steal: " + Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()));
+								
+								if (whoHasTheBall == HasTheBall.NoOne) {
+									status = PlayerStatus.Pursue;
+								} else if (whoHasTheBall == HasTheBall.YourTeam) {
+									status = PlayerStatus.Attack;
+								} else {
+									if (Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()) > 15) {
+										status = PlayerStatus.Defend;
+									} else {
+										runToBall(ERROR);
+									}
+								}
+								
+								break;
+							case Defend:
+								runToPoint(initialPosition.getX(), initialPosition.getY(), ERROR);
+								
+								if (whoHasTheBall == HasTheBall.NoOne) {
+									status = PlayerStatus.Pursue;
+								} else if (whoHasTheBall == HasTheBall.YourTeam) {
+									status = PlayerStatus.Attack;
+								} else if (Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()) < 15) {
+									status = PlayerStatus.Steal;
+								}
+								break;
+							case Patrol:
+								break;
 						}
+						
+						System.out.println(selfPerc.getTeam() + ", " + selfPerc.getUniformNumber() + ": " + status);
 						break;
 				}
 				

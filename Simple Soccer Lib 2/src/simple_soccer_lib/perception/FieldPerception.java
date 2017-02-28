@@ -43,7 +43,7 @@ public class FieldPerception {
 	public ArrayList<PlayerPerception> getTeamPlayers(String teamName) {
 		ArrayList<PlayerPerception> lpp = new ArrayList<PlayerPerception>();
 		for (PlayerPerception playerPerception : players) {
-			if (playerPerception.getTeam().equals(teamName)) {
+			if (playerPerception.getTeam() != null && playerPerception.getTeam().equals(teamName)) {
 				lpp.add(playerPerception);
 			}
 		}
