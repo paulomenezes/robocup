@@ -132,8 +132,10 @@ public class MatchPerception {
 		 AFTER_GOAL_LEFT 	= 14,
 		 AFTER_GOAL_RIGHT 	= 15,
 		 DROP_BALL 			= 16,
-		 OFF_SIDE_LEFT 		= 17,
-		 OFF_SIDE_RIGHT 	= 18,
-		 MAX 				= 19;
+		 OFFSIDE_LEFT 		= 17,
+		 OFFSIDE_RIGHT 	= 18,
+		 MAX 				= 19,
+		 FREE_KICK_FAULT_LEFT = 34,
+		 FREE_KICK_FAULT_RIGHT = 35;
 	}
 }

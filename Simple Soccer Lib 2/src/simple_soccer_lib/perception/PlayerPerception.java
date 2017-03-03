@@ -101,7 +101,7 @@ public class PlayerPerception extends ObjectPerception {
 				"\nSide:	"+side;
 	}
 	
-	public class PlayerStatus {
+	public class PlayerState {
 		public static final int
 			DISABLE 	= 0,
 			STAND 		= 0x01,
@@ -109,7 +109,7 @@ public class PlayerPerception extends ObjectPerception {
 			KICK_FAULT 	= 0x04,
 			GOALIE		= 0x08,
 			CATCH		= 0x10,
-			CATCH_FAULT = 0x20,
-			HAS_THE_BALL = 0x441;
+			CATCH_FAULT = 0x2,
+			HAS_BALL		= 0x441;
 	}
 }

@@ -10,6 +10,11 @@ public class Vector2D {
 		this.y = y;
 	}
 	
+	public Vector2D(Vector2D other){
+		this.x = other.x;
+		this.y = other.y;
+	}
+	
 	public Vector2D(){
 		
 	}
@@ -23,50 +28,52 @@ public class Vector2D {
 	public void normalizeIn() {
 		double length = magnitude();
 		if (length != 0) {
-			this.x = this.x/length;
-			this.y = this.y/length;
+			this.x /= length;
+			this.y /= length;
 		}
 	}
 	
 	public Vector2D normalize(double magnitude) {
 		Vector2D v2 = new Vector2D();
-		double length = Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
-		if (length != 0) {
-			v2.x = this.x/length;
-			v2.y = this.y/length;
+		if (magnitude != 0) {
+			v2.x = this.x/magnitude;
+			v2.y = this.y/magnitude;
 		}
 		return v2;
 	}
 	
-	public double normIn(){
-		return Math.sqrt(Math.pow(this.getX(),2)+Math.pow(this.getY(),2));
+	public void multiplyIn(double d) {
+		this.x *= d;
+		this.y *= d;	
 	}
 	
-	public void multiplyIn(double d) {
-		throw new Error(); // FAZER!
+	public Vector2D multiply(double d) {
+		Vector2D v2 = new Vector2D(this.x * d, this.y * d);
+	    return v2;	
 	}
 	
 	public void sumIn(Vector2D other) {
-		this.x = this.x + other.getX();
-		this.y = this.y + other.getY();	
+		this.x += other.x;
+		this.y += other.y;
 	}
 	
 	public Vector2D sum(Vector2D other) {
-		Vector2D v2 = new Vector2D(this.x + other.getX(), this.y + other.getY());
+		Vector2D v2 = new Vector2D(this.x + other.x, this.y + other.y);
 	    return v2;
 	}
 	
 	public void subIn(Vector2D other) {
-		this.x = this.x - other.getX();
-		this.y = this.y - other.getY();
+		this.x -= other.x;
+		this.y -= other.y;
 	}
 
 	public Vector2D sub(Vector2D other) {
-	 	return new Vector2D(this.getX() - other.getX(), this.getY() - other.getY());
+		Vector2D v2 = new Vector2D(this.x - other.x, this.y - other.y);
+	 	return v2;
 	}
 
 	public double magnitude() {
-		return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
+		return Math.sqrt(this.x*this.x + this.y*this.y);
 	}
 	
 	public Vector2D rotate(double angle) {
@@ -82,24 +89,31 @@ public class Vector2D {
 	}
 	
 	public static double distance(Vector2D vector1, Vector2D vector2){
-		return Math.sqrt(Math.pow(vector1.getX()-vector2.getX(),2)+Math.pow(vector1.getY()-vector2.getY(),2));
+		return Math.sqrt(Math.pow(vector1.x-vector2.x, 2) + Math.pow(vector1.y-vector2.y, 2));
 	}
 	
 	double distanceIn(Vector2D other) {
-		return Math.sqrt(Math.pow(this.x-other.getX(),2)+Math.pow(this.y-other.getY(),2));
+		return Math.sqrt(Math.pow(this.x-other.x, 2) + Math.pow(this.y-other.y, 2));
 	}
 	
 	double distanceSquared(Vector2D other) { //para comparar (e.g. achar o mais perto), não precisa tirar a raiz quadrada
 		return -1;
 	}
 	
+	/**
+	 * @deprecated Use {@link #multiplyIn(double)}
+	 * */
+	@Deprecated
 	public void scaleIn(double scale){
-		this.x*=scale;
-		this.y*=scale;
+		multiplyIn(scale);
 	}
 	
+	/**
+	 * @deprecated Use {@link #multiply(double)}
+	 * */
+	@Deprecated
 	public Vector2D scale(double scale){
-		return new Vector2D(this.x*=scale,this.y*=scale);
+		return multiply(scale);
 	}	
 	
 	public double getX() {
@@ -142,7 +156,7 @@ public class Vector2D {
 		return vectors;
 	}
 	
-	public static Vector2D[] searchInY(Vector2D one,double distance, double y){
+	public static Vector2D[] searchInY(Vector2D one, double distance, double y){
 		Vector2D[] vectors = new Vector2D[2];
 		double c = Math.pow(one.getY()-y, 2)-Math.pow(distance, 2)-Math.pow(one.getX(), 2);
 		double x1 = one.getX()+Math.sqrt(Math.pow(one.getX(),2)-c);
@@ -168,15 +182,7 @@ public class Vector2D {
 		Vector2D vector = new Vector2D(dx,dy);
 		return vector;
 	}
-	
-//	public static double angle(Vector2D one, Vector2D two){
-//		double a = (one.getX()*two.getX())+(one.getY()*two.getY());
-//		double cos = a/(one.normIn()*two.normIn());
-//		//System.out.println("Cos = " + cos);
-//		double angle = Math.acos(cos) * 180.0d / Math.PI;
-//		return angle;
-//	}
-		
+			
 	//angle of v2 relative to v1 = atan2(v2.y,v2.x) - atan2(v1.y,v1.x)
 	//http://www.euclideanspace.com/maths/algebra/vectors/angleBetween/
 	public double angleFrom(Vector2D reference) {
@@ -186,5 +192,81 @@ public class Vector2D {
 
 	public String toString() {
 		return "Vector2D [x=" + x + ", y=" + y + "]";
+	}
+
+	public void overwrite(Vector2D other) {
+		this.x = other.x;
+		this.y = other.y;		
+	}
+	
+	public void overwrite(double x, double y) {
+		this.x = x;
+		this.y = y;		
+	}
+
+	public double distanceTo(Vector2D reference) {
+		return this.sub(reference).magnitude();
+	}
+	
+	public Vector2D copy(){
+		return new Vector2D(this);
+	}
+	
+	/**
+	 * Calculates the point of interception for one object starting at point
+	 * <code>a</code> with speed vector <code>v</code> and another object
+	 * starting at point <code>b</code> with a speed of <code>s</code>.
+	 * 
+	 * @see <a
+	 *      href="http://jaran.de/goodbits/2011/07/17/calculating-an-intercept-course-to-a-target-with-constant-direction-and-velocity-in-a-2-dimensional-plane/">Calculating
+	 *      an intercept course to a target with constant direction and velocity
+	 *      (in a 2-dimensional plane)</a>
+	 * 
+	 * @param a
+	 *            start vector of the object to be intercepted
+	 * @param v
+	 *            speed vector of the object to be intercepted
+	 * @param b
+	 *            start vector of the intercepting object
+	 * @param s
+	 *            speed of the intercepting object
+	 * @return vector of interception or <code>null</code> if object cannot be
+	 *         intercepted or calculation fails
+	 * 
+	 * @author Jens Seiler
+	 */
+	public static Vector2D interception(final Vector2D a, final Vector2D v, final Vector2D b, final double s) {
+		final double ox = a.x - b.x;
+		final double oy = a.y - b.y;
+ 
+		final double h1 = v.x * v.x + v.y * v.y - s * s;
+		final double h2 = ox * v.x + oy * v.y;
+		double t;
+		if (h1 == 0) { // problem collapses into a simple linear equation 
+			t = -(ox * ox + oy * oy) / (2*h2);
+		} else { // solve the quadratic equation
+			final double minusPHalf = -h2 / h1;
+ 
+			final double discriminant = minusPHalf * minusPHalf - (ox * ox + oy * oy) / h1; // term in brackets is h3
+			if (discriminant < 0) { // no (real) solution then...
+				return null;
+			}
+ 
+			final double root = Math.sqrt(discriminant);
+ 
+			final double t1 = minusPHalf + root;
+			final double t2 = minusPHalf - root;
+ 
+			final double tMin = Math.min(t1, t2);
+			final double tMax = Math.max(t1, t2);
+ 
+			t = tMin > 0 ? tMin : tMax; // get the smaller of the two times, unless it's negative
+			if (t < 0) { // we don't want a solution in the past
+				return null;
+			}
+		}
+ 
+		// calculate the point of interception using the found intercept time and return it
+		return new Vector2D(a.getX() + t * v.getX(), a.getY() + t * v.getY());
 	}
 }

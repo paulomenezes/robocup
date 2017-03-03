@@ -9,6 +9,7 @@ import simple_soccer_lib.perception.FieldPerception;
 import simple_soccer_lib.perception.MatchPerception;
 import simple_soccer_lib.perception.PlayerPerception;
 import simple_soccer_lib.positions_monitor.MonitorCommunicator;
+import simple_soccer_lib.utils.EMatchState;
 import simple_soccer_lib.utils.Vector2D;
 
 /**
@@ -88,25 +89,27 @@ public class PlayerCommander extends Thread {
 
 						this.self  = (self == null) ? new PlayerPerception() : this.self;
 						this.field = (field == null) ? new FieldPerception() : this.field;
+						this.match = (match == null) ? new MatchPerception() : this.match;
 						
 						//boolean hasNewPerceptions = 
 						//communicator.update(self, field); //os parâmetros são alterados dentro desta chamada
 						
-						communicator.update(null, null); //para ignorar as percepções lidas						
+						// TODO COMENTADO
+//						communicator.update(null, null); //para ignorar as percepções lidas						
 						
 						boolean hasNewPerceptions = 
 								perceiver.update(field, match);
 						
 						if (hasNewPerceptions) {
-							self = field.getTeamPlayer(teamName, uniformNumber);
+							self = field.getTeamPlayer(fieldSide == 'l'? 1 : -1, uniformNumber);
 							
 							this.selfConsumed = false;
 							this.fieldConsumed = false;
 							this.matchConsumed = false;
 							
-							//if (self.getDirection() != null) {
-							this.viewDirection = self.getDirection();
-							//}
+//							if (self != null) {
+								this.viewDirection = self.getDirection();
+//							}
 						}
 
 //						printLog();
@@ -138,27 +141,27 @@ public class PlayerCommander extends Thread {
 		if(self != null && field != null && match != null){
 			System.out.println("INFORMACOES DA PARTIDA ------------------");
 			System.out.println("Tempo atual: "+match.getTime());
-			System.out.println("Estado jogo: "+match.getState());
+			System.out.println("Estado jogo: "+EMatchState.getStateFromCode(match.getState()));
 			System.out.println("Placar: "+match.getTeamAName() +" "+ match.getTeamAScore() +" x "+ match.getTeamBScore() +" "+ match.getTeamBName());
 			System.out.println("Lado time A: "+match.getTeamASide());
 			System.out.println("Lado time B: "+match.getTeamBSide());
 			System.out.println();
 			
-			System.out.println("INFORMACOES DO JOGADOR ------------------");
-			System.out.println("Tempo atual: "+ field.getTime());
-			System.out.println("Numero jogador: "+ self.getUniformNumber());
-			System.out.println("Time jogador: "+ self.getTeam());
-			System.out.println("Lado campo: "+ self.getSide());
-			System.out.println("Eh goleiro?: "+ self.isGoalie());
-			if (self.getPosition()!= null)
-				System.out.println("Posicao jogador: "+ self.getPosition());
-			if (self.getDirection()!= null)
-				System.out.println("Direcao jogador: "+ self.getDirection());
-			System.out.println("Jogadores vistos: "+ field.getAllPlayers().size());
-			System.out.println("Jogadores vistos do time: "+ field.getTeamPlayers(self.getTeam()).size());
-			if(field.getBall().getPosition() != null)
-				System.out.println("Posicao bola: "+ field.getBall().getPosition());
-			System.out.println();
+//			System.out.println("INFORMACOES DO JOGADOR ------------------");
+//			System.out.println("Tempo atual: "+ field.getTime());
+//			System.out.println("Numero jogador: "+ self.getUniformNumber());
+//			System.out.println("Time jogador: "+ self.getTeam());
+//			System.out.println("Lado campo: "+ self.getSide());
+//			System.out.println("Eh goleiro?: "+ self.isGoalie());
+//			if (self.getPosition()!= null)
+//				System.out.println("Posicao jogador: "+ self.getPosition());
+//			if (self.getDirection()!= null)
+//				System.out.println("Direcao jogador: "+ self.getDirection());
+//			System.out.println("Jogadores vistos: "+ field.getAllPlayers().size());
+//			System.out.println("Jogadores vistos do time: "+ field.getTeamPlayers(self.getTeam()).size());
+//			if(field.getBall().getPosition() != null)
+//				System.out.println("Posicao bola: "+ field.getBall().getPosition());
+//			System.out.println();
 		}
 	}
 	
@@ -413,6 +416,29 @@ public class PlayerCommander extends Thread {
 			}
 		}	
 		doMove(x, y);
+	}
+	
+	/**
+	 * Comando exclusivo do goleiro para agarrar a bola (entre -45 e 45 graus).
+	 */
+	synchronized public boolean doCatch(double angle) {
+		if (System.currentTimeMillis() < nextActionTime) {  //TESTAR também se PODE, dependendo do status da partida
+			return false;
+		}
+		communicator.catchBall(angle); 
+		nextActionTime += SIMULATOR_CYCLE;
+		return true;
+	}
+	
+	public void doCatchBlocking(double angle) {
+		while (System.currentTimeMillis() < nextActionTime) {
+			try {
+				Thread.sleep(WAIT_TIME);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}	
+		doCatch(angle);
 	}
 	
 	public void disconnect() {

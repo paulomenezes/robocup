@@ -12,6 +12,7 @@ import simple_soccer_lib.PlayerCommander;
 import simple_soccer_lib.perception.FieldPerception;
 import simple_soccer_lib.perception.MatchPerception;
 import simple_soccer_lib.perception.PlayerPerception;
+import simple_soccer_lib.utils.EMatchState;
 import simple_soccer_lib.utils.Vector2D;
 
 public class CommandPlayer extends Thread {
@@ -43,8 +44,8 @@ public class CommandPlayer extends Thread {
 	 * SHOW PLAYER UNIFORM NUMBER:		SPUNI
 	 * SHOW TIME:						STIME
 	 * SHOW QNT. PLAYERS IN VIEW:		SQPLS
-	 * SHOW PLAYER INFO:				SPLIN BTEAM 5	-> Nome do time e numero do jogador
-	 * SHOW QNT. PLAYERS SPECIFC TEAM:	SQPSS BTEAM		-> Nome do time
+	 * SHOW PLAYER INFO:				SPLIN A 3		-> time A (lado esquerdo) ou B (lado direto) e numero do jogador
+	 * SHOW QNT. PLAYERS SPECIFC TEAM:	SQPSS A			-> time A (lado esquerdo) ou B (lado direto)
 	 * SHOW BALL POSITION:				SBPOS
 	 **/
 	
@@ -243,19 +244,27 @@ public class CommandPlayer extends Thread {
 			
 		}else if(action[0].equalsIgnoreCase("SPLIN")){
 			try{
-				System.out.println(action[0]+":\n"+fieldPerc.getTeamPlayer(action[1], Integer.parseInt(action[2])));
+				if(action[1].equalsIgnoreCase("A") || action[1].equalsIgnoreCase("B")){
+					System.out.println(action[0]+":\n"+fieldPerc.getTeamPlayer(action[1].equalsIgnoreCase("A")? 1 : -1, Integer.parseInt(action[2])));
+				}else{
+					throw new Exception();
+				}
 			}catch(Exception e){
 				System.err.println("Comando inválido: "+comm+".\n"
-						+"Ex: SPLIN BTEAM 5	-> Nome do time e numero do jogador");
+						+"Ex: SPLIN A 3	-> time A (lado esquerdo) ou B (lado direto) e numero do jogador");
 				e.printStackTrace();
 			}
 			
 		}else if(action[0].equalsIgnoreCase("SQPSS")){
 			try{
-				System.out.println(action[0]+": "+fieldPerc.getTeamPlayers(action[1]).size());
+				if(action[1].equalsIgnoreCase("A") || action[1].equalsIgnoreCase("B")){
+					System.out.println(action[0]+":\n"+fieldPerc.getTeamPlayers(action[1].equalsIgnoreCase("A")? 1 : -1));
+				}else{
+					throw new Exception();
+				}
 			}catch(Exception e){
 				System.err.println("Comando inválido: "+comm+".\n"
-						+"Ex: SQPSS BTEAM	-> Nome do time");
+						+"Ex: SQPSS A	-> time A (lado esquerdo) ou B (lado direto)");
 				e.printStackTrace();
 			}
 		}else if(action[0].equalsIgnoreCase("SBPOS")){
@@ -337,11 +346,11 @@ public class CommandPlayer extends Thread {
 				// TODO
 				break;
 				
-			case MatchPerception.MatchState.OFF_SIDE_LEFT:
+			case MatchPerception.MatchState.OFFSIDE_LEFT:
 				// TODO
 				break;
 	
-			case MatchPerception.MatchState.OFF_SIDE_RIGHT:
+			case MatchPerception.MatchState.OFFSIDE_RIGHT:
 				// TODO
 				break;
 	
@@ -357,7 +366,26 @@ public class CommandPlayer extends Thread {
 	}
 	
 	private void kickToPoint(double x, double y){
-		// TODO
+		Vector2D myPos = selfPerc.getPosition();
+		Vector2D point = new Vector2D(x, y);
+		Vector2D newDirection = point.sub(myPos);
+		println(" => Point = " + point + " -- Player = " + myPos + " -- New Direction = " + newDirection + " -- Magnitude = "+ newDirection.magnitude());
+		
+//		Para verificar se eh necessario um turn antes de chutar
+//		double angle = newDirection.angleFrom(point);
+//		System.out.println("ANGLE: "+ angle);
+//		if(angle > 90 || angle < -90){
+//			commander.doTurnToDirectionBlocking(newDirection);
+//			System.out.println("doTurnToDirectionBlocking");
+//		}
+		
+		commander.doTurnToDirectionBlocking(newDirection);
+		
+		double intensity = (newDirection.magnitude() * 100) / 40;
+		if(intensity > 100){
+			intensity = 100;
+		}
+		commander.doKickBlocking(intensity, 0);
 	}
 	
 	private void turnToBall() {
@@ -371,11 +399,14 @@ public class CommandPlayer extends Thread {
 	}
 	
 	private void runToBall(double erro) {
-		while (Math.abs(selfPerc.getPosition().getX() - fieldPerc.getBall().getPosition().getX()) > erro ||
-				Math.abs(selfPerc.getPosition().getY() - fieldPerc.getBall().getPosition().getY()) > erro) {
-			turnToBall();
-			commander.doDashBlocking(100.0d);
-			updatePerceptions();
+		if(matchPerc != null){
+			while (matchPerc.getState() == MatchPerception.MatchState.PLAY_ON && 
+					(Math.abs(selfPerc.getPosition().getX() - fieldPerc.getBall().getPosition().getX()) > erro ||
+					Math.abs(selfPerc.getPosition().getY() - fieldPerc.getBall().getPosition().getY()) > erro)) {
+				turnToBall();
+				commander.doDashBlocking(100.0d);
+				updatePerceptions();
+			}
 		}
 	}
 	
@@ -389,12 +420,15 @@ public class CommandPlayer extends Thread {
 	}
 	
 	private void runToPoint(double x, double y, double erro) {
-		Vector2D point = new Vector2D(x, y);
-		while (Math.abs(selfPerc.getPosition().getX() - point.getX()) > erro ||
-				Math.abs(selfPerc.getPosition().getY() - point.getY()) > erro) {
-			turnToPoint(x, y);
-			commander.doDashBlocking(100.0d);
-			updatePerceptions();
+		if(matchPerc != null){
+			Vector2D point = new Vector2D(x, y);
+			while (matchPerc.getState() == MatchPerception.MatchState.PLAY_ON &&
+					(Math.abs(selfPerc.getPosition().getX() - point.getX()) > erro ||
+					Math.abs(selfPerc.getPosition().getY() - point.getY()) > erro)) {
+				turnToPoint(x, y);
+				commander.doDashBlocking(100.0d);
+				updatePerceptions();
+			}
 		}
 	}
 	
@@ -421,7 +455,7 @@ public class CommandPlayer extends Thread {
 		if (newField != null) {
 			this.fieldPerc = newField;
 		}
-		if (matchPerc != null){
+		if (newMatch != null){
 			this.matchPerc = newMatch;
 		}
 	}

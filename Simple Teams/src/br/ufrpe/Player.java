@@ -75,7 +75,7 @@ public class Player extends Thread {
 							case Attack:
 								boolean kickToGoal = true;
 								
-								if (selfPerc.getState() == PlayerPerception.PlayerStatus.HAS_THE_BALL) {
+								if (selfPerc.getState() == PlayerPerception.PlayerState.HAS_BALL) {
 									ArrayList<PlayerPerception> myTeam = fieldPerc.getTeamPlayers(selfPerc.getTeam());
 									for (PlayerPerception player : myTeam) {
 										if (player.getPosition() != null) {
@@ -114,7 +114,7 @@ public class Player extends Thread {
 								break;
 							case Pursue:
 								System.out.println("Pursue: " + Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()));
-								if (Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()) > 15) {
+								if (Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()) > 25) {
 									status = PlayerStatus.Idle;
 								} else {
 									runToBall(ERROR);
@@ -135,7 +135,7 @@ public class Player extends Thread {
 								} else if (whoHasTheBall == HasTheBall.YourTeam) {
 									status = PlayerStatus.Attack;
 								} else {
-									if (Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()) > 15) {
+									if (Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()) > 35) {
 										status = PlayerStatus.Defend;
 									} else {
 										runToBall(ERROR);
@@ -146,13 +146,13 @@ public class Player extends Thread {
 							case Defend:
 								runToPoint(initialPosition.getX(), initialPosition.getY(), ERROR);
 								
-								if (whoHasTheBall == HasTheBall.NoOne) {
+								/*if (whoHasTheBall == HasTheBall.NoOne) {
 									status = PlayerStatus.Pursue;
 								} else if (whoHasTheBall == HasTheBall.YourTeam) {
 									status = PlayerStatus.Attack;
-								} else if (Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()) < 15) {
+								} else if (Vector2D.distance(fieldPerc.getBall().getPosition(), selfPerc.getPosition()) < 35) {
 									status = PlayerStatus.Steal;
-								}
+								}*/
 								break;
 							case Patrol:
 								break;
@@ -194,14 +194,31 @@ public class Player extends Thread {
 		commander.doTurnToDirectionBlocking(newDirection);		
 	}
 	
-	private void runToBall(double erro) {
-		while (Math.abs(selfPerc.getPosition().getX() - fieldPerc.getBall().getPosition().getX()) > erro ||
-				Math.abs(selfPerc.getPosition().getY() - fieldPerc.getBall().getPosition().getY()) > erro) {
-			turnToBall();
-			commander.doDashBlocking(100.0d);
-			updatePerceptions();
-		}
-	}
+	private void runToBall(double margin) {
+		double velocityMax = 80d;
+		double velocityMin = 10d;
+		
+        if(matchPerc != null){
+            double i = velocityMax;
+            while (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) > margin) {
+                if(!isAlignToPoint(fieldPerc.getBall().getPosition(), 20)){
+                    turnToBall();
+                }else{
+                    commander.doDashBlocking(i);
+               
+                    i = fieldPerc.getBall().getPosition().distanceTo(selfPerc.getPosition()) * 40;
+                    if(i < velocityMin) i = velocityMin;
+                    else if(i > velocityMax) i = velocityMax;
+                }
+                updatePerceptions();
+            }
+        }
+    }
+ 
+	private boolean isAlignToPoint(Vector2D point, double margin){
+        double angle = point.sub(selfPerc.getPosition()).angleFrom(selfPerc.getDirection());
+        return angle < margin && angle > margin*(-1);
+    }
 	
 	private void turnToPoint(double x, double y){
 		Vector2D myPos = selfPerc.getDirection();

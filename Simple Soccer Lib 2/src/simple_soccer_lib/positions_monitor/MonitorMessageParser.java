@@ -101,19 +101,19 @@ public class MonitorMessageParser {
 		ObjectPerception ball = new ObjectPerception();
 		parse_pos_t_Ball(ball);
 		
-		ArrayList<PlayerPerception> players = new ArrayList<>(22);
-				
+		ArrayList<PlayerPerception> playersA = new ArrayList<>(11);
+		ArrayList<PlayerPerception> playersB = new ArrayList<>(11);
+		
 		//time 0
-		int i = 0;
-		for (; i < 11; i++) {
-			players.add(new PlayerPerception());
-			parse_pos_t_Player(true, this.matchPerception.getTeamAName(), players.get(i));
+		for (int i = 0; i < 11; i++) {
+			playersA.add(new PlayerPerception());
+			parse_pos_t_Player(true, this.matchPerception.getTeamAName(), playersA.get(i));
 		}
 		
 		//time 1
-		for (; i < 22; i++) {
-			players.add(new PlayerPerception());
-			parse_pos_t_Player(false, this.matchPerception.getTeamBName(), players.get(i));
+		for (int i = 0; i < 11; i++) {
+			playersB.add(new PlayerPerception());
+			parse_pos_t_Player(false, this.matchPerception.getTeamBName(), playersB.get(i));
 		}
 		
 		short time = readShort();
@@ -123,7 +123,8 @@ public class MonitorMessageParser {
 		
 		this.fieldPerception.setTime(time);
 		this.fieldPerception.setBall(ball);
-		this.fieldPerception.setAllPlayers(players);
+		this.fieldPerception.setAllPlayersA(playersA);
+		this.fieldPerception.setAllPlayersB(playersB);
 	}
 
 	/*

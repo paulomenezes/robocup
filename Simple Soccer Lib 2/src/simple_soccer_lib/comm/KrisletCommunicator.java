@@ -157,6 +157,10 @@ public class KrisletCommunicator {
 	public void say(String message) {
 		send("(say " + message + ")");
 	}
+	
+	public void catchBall(double angle) {
+		send("(catch " + Double.toString(angle) + ")");
+	}
 
 	// This function sends chage_view command to the server
 	public void changeView(String angle, String quality) {

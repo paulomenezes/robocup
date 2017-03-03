@@ -15,7 +15,7 @@ public class Memory {
 		
 		ArrayList<PlayerPerception> players = fieldPerception.getAllPlayers();
 		for (PlayerPerception player : players) {
-			if (player.getState() == PlayerPerception.PlayerStatus.HAS_THE_BALL) {
+			if (player.getState() == PlayerPerception.PlayerState.HAS_BALL) {
 				if (player.getTeam().equals(team)) {
 					hasTheBall = HasTheBall.YourTeam;
 				} else {
@@ -29,7 +29,7 @@ public class Memory {
 		if (hasTheBall == HasTheBall.NoOne && ball != null) {
 			for (PlayerPerception player : players) {
 				if (player.getPosition() != null) {
-					if (Vector2D.distance(player.getPosition(), ball.getPosition()) <= 1) {
+					if (Vector2D.distance(player.getPosition(), ball.getPosition()) <= 5) {
 						if (player.getTeam().equals(team)) {
 							hasTheBall = HasTheBall.YourTeam;
 						} else {
