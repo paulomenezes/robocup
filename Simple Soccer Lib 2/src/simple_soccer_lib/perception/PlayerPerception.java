@@ -112,4 +112,15 @@ public class PlayerPerception extends ObjectPerception {
 			CATCH_FAULT = 0x2,
 			HAS_BALL		= 0x441;
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof PlayerPerception) {
+			PlayerPerception perception = (PlayerPerception) obj;
+			return perception.getUniformNumber() == this.getUniformNumber() && 
+				   perception.getTeam().equals(this.getTeam());
+		} else {
+			return false;
+		}
+	}
 }

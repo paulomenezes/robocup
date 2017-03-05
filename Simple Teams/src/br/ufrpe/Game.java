@@ -8,7 +8,7 @@ public class Game {
 		Team team1 = new Team(1);
 		team1.launchTeamAndServer();
 
-		Team team2 = new Team(2);
-		team2.launchTeam();
+		//Team team2 = new Team(2);
+		//team2.launchTeam();
 	}
 }
