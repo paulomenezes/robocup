@@ -15,28 +15,13 @@ public class Memory {
 		
 		ArrayList<PlayerPerception> players = fieldPerception.getAllPlayers();
 		for (PlayerPerception player : players) {
-			if (player.getState() == PlayerPerception.PlayerState.HAS_BALL) {
-				if (player.getTeam().equals(team)) {
-					hasTheBall = HasTheBall.YourTeam;
-				} else {
-					hasTheBall = HasTheBall.NoOne;
-				}
-				
-				if (hasTheBall == HasTheBall.YourTeam) break;
-			}
-		}
-		
-		if (hasTheBall == HasTheBall.NoOne && ball != null) {
-			for (PlayerPerception player : players) {
-				if (player.getPosition() != null) {
-					if (Vector2D.distance(player.getPosition(), ball.getPosition()) <= 5) {
-						if (player.getTeam().equals(team)) {
-							hasTheBall = HasTheBall.YourTeam;
-						} else {
-							hasTheBall = HasTheBall.NoOne;
-						}
-						
-						if (hasTheBall == HasTheBall.YourTeam) break;
+			if (player.getPosition() != null) {
+				if (Vector2D.distance(player.getPosition(), ball.getPosition()) <= 5) {
+					if (player.getTeam().equals(team)) {
+						hasTheBall = HasTheBall.YourTeam;
+						break;
+					} else {
+						hasTheBall = HasTheBall.Opponent;
 					}
 				}
 			}

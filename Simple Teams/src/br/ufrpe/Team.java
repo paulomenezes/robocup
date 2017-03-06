@@ -14,23 +14,13 @@ public class Team extends AbstractTeam {
 
 	@Override
 	protected void launchPlayer(int ag, PlayerCommander commander) {
-		double targetX, targetY;
-
 		double[] XValues = new double[] { -50, -30, -30, -10, -10 };
 		double[] YValues = new double[] { 0, -20, 20, -15, 15 };
 		
-		targetX = XValues[ag];
-		targetY = YValues[ag];
+		double targetX = XValues[ag];
+		double targetY = YValues[ag];
 		
-		/*if (team == 1) {
-			targetX *= -1;
-		}*/
-		
-		// -50, 0 : -30, -20 : -30, 20 : -11, -15 : -11, 15
-		
-		System.out.println("Player: " + ag + " Time: " + team + " X: " + targetX + " Y: " + targetY);
-
-		Player p = new Player(commander, targetX, targetY);
+		Player p = new Player(commander, targetX, targetY, ag == 0 ? PlayerType.GoalKeeper : PlayerType.FieldPlayer);
 		p.start();
 	}	
 }
