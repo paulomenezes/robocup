@@ -7,15 +7,15 @@ public class Team extends AbstractTeam {
 	int team;
 
 	public Team(int team) {
-		super("Time" + team, 5);
+		super("BCC" + team, 6);
 		
 		this.team = team;
 	}
 
 	@Override
 	protected void launchPlayer(int ag, PlayerCommander commander) {
-		double[] XValues = new double[] { -50, -30, -30, -10, -10 };
-		double[] YValues = new double[] { 0, -20, 20, -15, 15 };
+		double[] XValues = new double[] { -50, -30, -30, -25, -10, -10 };
+		double[] YValues = new double[] { 0, -20, 20, 0, -15, 15 };
 		
 		double targetX = XValues[ag];
 		double targetY = YValues[ag];

@@ -12,7 +12,7 @@ import simple_soccer_lib.utils.Vector2D;
 public class Player extends Thread {
 	private int LOOP_INTERVAL = 100;  //0.1s
 	private double ERROR = 0.9;
-	private double ERROR_RUN_BALL = 1;
+	private double ERROR_RUN_BALL = 0.9;
 	
 	private PlayerCommander commander;
 	private MatchPerception matchPerc;
@@ -172,8 +172,7 @@ public class Player extends Thread {
 							//System.out.println(selfPerc.getTeam() + ", " + selfPerc.getUniformNumber() + ": " + status + " : " + type);
 
 						} else {
-							if (Vector2D.distance(selfPerc.getPosition(), fieldPerc.getBall().getPosition()) < 10) {
-								System.out.println("Catch the ball: " + selfPerc.getPosition() + " - " + selfPerc.getSide());
+							if (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) < 10) {
 								runToBall(ERROR_RUN_BALL);
 								
 								if (selfPerc.getSide() == 1)
@@ -185,6 +184,8 @@ public class Player extends Thread {
 									runToPoint(new Vector2D(-52, 0), ERROR);
 								else
 									runToPoint(new Vector2D(52, 0), ERROR);
+								
+								turnToBall();
 							}
 						}
 						
@@ -214,6 +215,14 @@ public class Player extends Thread {
         commander.doKickBlocking(intensity, 0);
     }
 	
+	private void turnToPoint(double x, double y){
+		Vector2D myPos = selfPerc.getPosition();
+		Vector2D point = new Vector2D(x, y);
+		Vector2D newDirection = point.sub(myPos);
+		
+		commander.doTurnToDirectionBlocking(newDirection);		
+	}
+		
 	private void turnToBall() {
 		Vector2D ballPos = fieldPerc.getBall().getPosition();
 		Vector2D myPos = selfPerc.getPosition();
@@ -237,31 +246,36 @@ public class Player extends Thread {
         if (matchPerc != null) {
             double i = velocityMax;
             while (selfPerc.getPosition().distanceTo(position) > margin) {
-            	//System.out.println(selfPerc.getTeam() + ", " + selfPerc.getUniformNumber() + ": " + selfPerc.getPosition().distanceTo(position));
-                if (!isAlignToPoint(position, 10)) {
-                    turnToBall();
-                } else {
-                    commander.doDashBlocking(i);
-               
-                    i = position.distanceTo(selfPerc.getPosition()) * 40;
-                    if (i < velocityMin) i = velocityMin;
-                    else if (i > velocityMax) i = velocityMax;
+            	if (!isAlignToPoint(position, 25)) {
+                    turnToPoint(position.getX(), position.getY());
                 }
+            	
+                commander.doDashBlocking(i);
+           
+                i = position.distanceTo(selfPerc.getPosition()) * 40;
+                if (i < velocityMin) i = velocityMin;
+                else if (i > velocityMax) i = velocityMax;
+            
+                updatePerceptions();
                 
-                if (selfPerc.getPosition().distanceTo(position) - lastDistance < 1) {
+                if (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) < 10)
+                	break;
+                
+                /*System.out.println("antes: " + selfPerc.getPosition().distanceTo(position));
+                System.out.println("depois: " + selfPerc.getPosition().distanceTo(position));
+                
+                if (Math.abs(selfPerc.getPosition().distanceTo(position) - lastDistance) < 1) {
                 	countEquals++;
                 	
                 	if (countEquals > 5) {
-                		//System.out.println("Break run to point");
+                		System.out.println("Break run to point");
                 		break;
                 	}
                 } else {
                 	countEquals = 0;
-                }
+                }*/
                 
                 lastDistance = selfPerc.getPosition().distanceTo(position);
-                
-                updatePerceptions();
             }
         }
 	}
@@ -270,15 +284,6 @@ public class Player extends Thread {
         double angle = point.sub(selfPerc.getPosition()).angleFrom(selfPerc.getDirection());
         return angle < margin && angle > margin*(-1);
     }
-	
-	private void turnToPoint(double x, double y){
-		Vector2D myPos = selfPerc.getDirection();
-		Vector2D point = new Vector2D(x, y);
-		Vector2D newDirection = point.sub(myPos);
-		
-		System.out.println(" => Point = " + point + " -- Player = " + myPos + " -- New Direction = " + newDirection);
-		commander.doTurnToDirectionBlocking(newDirection);		
-	}
 	
 	private boolean isAlignedToBall(double error) {
 		Vector2D ballPos = fieldPerc.getBall().getPosition();
