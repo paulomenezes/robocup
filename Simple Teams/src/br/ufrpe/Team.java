@@ -14,13 +14,7 @@ public class Team extends AbstractTeam {
 
 	@Override
 	protected void launchPlayer(int ag, PlayerCommander commander) {
-		double[] XValues = new double[] { -50, -30, -30, -25, -10, -10 };
-		double[] YValues = new double[] { 0, -20, 20, 0, -15, 15 };
-		
-		double targetX = XValues[ag];
-		double targetY = YValues[ag];
-		
-		Player p = new Player(commander, targetX, targetY, ag == 0 ? PlayerType.GoalKeeper : PlayerType.FieldPlayer);
+		Player p = new Player(commander);
 		p.start();
 	}	
 }
