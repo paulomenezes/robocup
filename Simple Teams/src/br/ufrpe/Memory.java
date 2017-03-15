@@ -21,7 +21,7 @@ public class Memory {
 		ArrayList<PlayerPerception> players = fieldPerception.getAllPlayers();
 		for (PlayerPerception player : players) {
 			if (player.getPosition() != null) {
-				if (Vector2D.distance(player.getPosition(), ball.getPosition()) <= 5) {
+				if (Vector2D.distance(player.getPosition(), ball.getPosition()) <= 1) {
 					if (player.getTeam().equals(team)) {
 						hasTheBall = HasTheBall.YourTeam;
 						break;
@@ -44,16 +44,16 @@ public class Memory {
 		int index = 0;
 		
 		for (int i = 0; i < players.size(); i++) {
-			if (players.get(i) != null && players.get(i).getPosition() != null && i > 3) {
+			if (players.get(i) != null && players.get(i).getPosition() != null) {
 				double d = ball.getPosition().distanceTo(players.get(i).getPosition());
 				if (d < maxD) {
 					maxD = d;
-					index = players.get(i).getUniformNumber();
+					index = i;
 				}
 			}
 		}
 		
-		return index == player.getUniformNumber();
+		return players.get(index).getUniformNumber() == player.getUniformNumber() && index > 3;
 	}
 	
 	public static PlayerPerception otherAttacker(PlayerPerception player, FieldPerception field) {

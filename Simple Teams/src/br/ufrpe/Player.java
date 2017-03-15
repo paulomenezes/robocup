@@ -1,5 +1,6 @@
 package br.ufrpe;
 
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +26,8 @@ public class Player extends Thread {
 	
 	private PlayerStatus status;
 	private PlayerType type;
+	
+	private Vector2D lastBallPosition;
 	
 	public Player(PlayerCommander player) {
 		commander = player;
@@ -72,24 +75,26 @@ public class Player extends Thread {
 						
 						//System.out.println(whoHasTheBall);
 						
-						if (type == PlayerType.Defense) {
-							if (selfPerc.getSide() == 1) {
-								if (fieldPerc.getBall().getPosition().getX() > 0) {
-									returnToInitialPosition();
-								}
-							} else {
-								if (fieldPerc.getBall().getPosition().getX() < 0) {
-									returnToInitialPosition();
-								}
-							}
-						} else if (type == PlayerType.Attack) {
+						if (type == PlayerType.Attack) {
 							if (Memory.RECEIVER_ON && selfPerc.getSide() == Memory.RECEIVER_SIDE) {
-								System.out.println("RECEIVER");
-								
-								if (selfPerc.getUniformNumber() == Memory.RECEIVER_UNIFORM) {
+								if (Memory.RECEIVER_UNIFORM == selfPerc.getUniformNumber()) {
 									runToBall(ERROR);
 								} else {
-									runToPoint(new Vector2D(fieldPerc.getBall().getPosition().getX(), selfPerc.getPosition().getY()), ERROR);
+									double x, y = 0;
+									if (selfPerc.getSide() == 1) {
+										x = 10;
+									} else { 
+										x = -10;
+									}
+									
+									if (selfPerc.getUniformNumber() == 5) {
+										y = -10;
+									} else {
+										y = 10;
+									}
+	
+									//System.out.println("Jogador: " + selfPerc.getUniformNumber() + " moveu para frente da bola: " + x + ", " + y);
+									runToPoint(new Vector2D(fieldPerc.getBall().getPosition().getX() + x, fieldPerc.getBall().getPosition().getY() + y), ERROR);
 								}
 								
 								Memory.RECEIVER_ON = false;
@@ -99,30 +104,68 @@ public class Player extends Thread {
 									
 									if ((selfPerc.getSide() == 1 && fieldPerc.getBall().getPosition().getX() >= 30) ||
 										(selfPerc.getSide() == -1 && fieldPerc.getBall().getPosition().getX() <= -30)) {
-										System.out.println("Jogador: " + selfPerc.getUniformNumber() + " chutou para gol");
-										if (selfPerc.getSide() == 1)
-											kickToPoint(52, 0, 100);
-										else
-											kickToPoint(-52, 0, 100);
+										if (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) <= 1) {
+											//System.out.println("Jogador: " + selfPerc.getUniformNumber() + " chutou para gol");
+											if (selfPerc.getSide() == 1)
+												kickToPoint(52, 0, 100);
+											else
+												kickToPoint(-52, 0, 100);
+										}
 									} else {
 										if (Memory.distanceFromEnemies(selfPerc, fieldPerc) > 5) {
 											//System.out.println("Jogador: " + selfPerc.getUniformNumber() + " saiu com a bola");
-											if (selfPerc.getSide() == 1)
-												kickToPoint(52, 0, 10);
-											else
-												kickToPoint(-52, 0, 10);
+											if (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) <= 1) {
+												if (selfPerc.getSide() == 1)
+													kickToPoint(52, 0, 10);
+												else
+													kickToPoint(-52, 0, 10);
+											}
 											
 											runToBall(ERROR);
 										} else {
-											System.out.println("Jogador: " + selfPerc.getUniformNumber() + " perto da bola");
-											if (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) <= 3 || Memory.attackersCloser(selfPerc, fieldPerc)) {
-												System.out.println("Jogador: " + selfPerc.getUniformNumber() + " tocou");
+											List<PlayerPerception> players = fieldPerc.getTeamPlayers(selfPerc.getSide());
+											
+											double maxD = 999;
+											int index = -1;
+											
+											for (int i = 0; i < players.size(); i++) {
+												if (players.get(i) != null && players.get(i).getPosition() != null && 
+													players.get(i).getUniformNumber() != selfPerc.getUniformNumber() &&
+													((selfPerc.getSide() == 1 && players.get(i).getPosition().getX() > selfPerc.getPosition().getX()) || 
+													 (selfPerc.getSide() == -1 && players.get(i).getPosition().getX() < selfPerc.getPosition().getX()))) {
+													double d = players.get(i).getPosition().distanceTo(selfPerc.getPosition());
+													if (d < maxD) {
+														maxD = d;
+														index = i;
+													}
+												}
+											}
+
+											if (index > -1) {
+												//System.out.println("Receiver para " + players.get(index).getUniformNumber());
+												if (!Memory.RECEIVER_ON) {
+													Memory.RECEIVER_ON = true;
+													Memory.RECEIVER_SIDE = selfPerc.getSide();
+													Memory.RECEIVER_UNIFORM = players.get(index).getUniformNumber();
+												}
+												//System.out.println("Kick proximo a frente - de " + selfPerc.getUniformNumber() + " para " + players.get(index).getUniformNumber());
+												kickToPoint(players.get(index).getPosition());
+											} else {
+												if (selfPerc.getSide() == 1)
+													kickToPoint(52, 0, 100);
+												else
+													kickToPoint(-52, 0, 100);
+											}
+											
+											//System.out.println("Jogador: " + selfPerc.getUniformNumber() + " perto da bola");
+											//if (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) <= 3 || Memory.attackersCloser(selfPerc, fieldPerc)) {
+												//System.out.println("Jogador: " + selfPerc.getUniformNumber() + " tocou");
 												
 												/*Memory.RECEIVER_ON = true;
 												Memory.RECEIVER_SIDE = selfPerc.getSide();
 												Memory.RECEIVER_UNIFORM = Memory.otherAttacker(selfPerc, fieldPerc).getSide();*/
 												
-												if (selfPerc.getPosition().getY() < 0) {
+												/*if (selfPerc.getPosition().getY() < 0) {
 													if (selfPerc.getPosition().distanceTo(fieldPerc.getTeamPlayer(selfPerc.getSide(), 1).getPosition()) < 
 															selfPerc.getPosition().distanceTo(Memory.otherAttacker(selfPerc, fieldPerc).getPosition())) {
 														kickToPoint(fieldPerc.getTeamPlayer(selfPerc.getSide(), 1).getPosition());
@@ -136,13 +179,28 @@ public class Player extends Thread {
 													} else {
 														kickToPoint(Memory.otherAttacker(selfPerc, fieldPerc).getPosition());
 													}
-												}
-											}
+												}*/
+											//}
 										}
 									}
 								} else {
-									//System.out.println("Jogador: " + selfPerc.getUniformNumber() + " moveu para X da bola");
-									runToPoint(new Vector2D(fieldPerc.getBall().getPosition().getX(), selfPerc.getPosition().getY()), ERROR);
+									double x, y = 0;
+									if (selfPerc.getSide() == 1) {
+										x = 10;
+									} else { 
+										x = -10;
+									}
+									
+									if (selfPerc.getUniformNumber() == 5) {
+										y = -10;
+									} else {
+										y = 10;
+									}
+
+									//System.out.println("Jogador: " + selfPerc.getUniformNumber() + " moveu para frente da bola: " + x + ", " + y);
+									runToPoint(new Vector2D(fieldPerc.getBall().getPosition().getX() + x, fieldPerc.getBall().getPosition().getY() + y), ERROR);
+									
+									/*runToPoint(new Vector2D(fieldPerc.getBall().getPosition().getX(), selfPerc.getPosition().getY()), ERROR);
 									
 									if (Memory.attackersCloser(selfPerc, fieldPerc)) {
 										System.out.println("Jogador: " + selfPerc.getUniformNumber() + " muito perto, se afastar");
@@ -151,12 +209,30 @@ public class Player extends Thread {
 										v.setX(selfPerc.getPosition().getX());
 										v.setY(initialPosition.getY());
 										runToPoint(v, ERROR);
-									}
+									}*/
 								}
 							}
 						} else if (type == PlayerType.Left || type == PlayerType.Right) {
-							if (whoHasTheBall == HasTheBall.YourTeam) {
-								if (fieldPerc.getBall().getPosition().distanceTo(selfPerc.getPosition()) < 2) {
+							Rectangle rectLeft1 = new Rectangle(-52, -34, 104, 20);
+							Rectangle rectRight1 = new Rectangle(-52, 13, 104, 20);
+
+							//Rectangle rectLeft2 = new Rectangle(-52, -34, 104, 20);
+							//Rectangle rectRight2 = new Rectangle(-52, 13, 104, 20);
+							
+							//System.out.println(type + " - " + selfPerc.getTeam());
+							
+							if ((type == PlayerType.Left && 
+								 rectLeft1.contains(fieldPerc.getBall().getPosition().getX(), fieldPerc.getBall().getPosition().getY())) ||
+								(type == PlayerType.Right && 
+								 rectRight1.contains(fieldPerc.getBall().getPosition().getX(), fieldPerc.getBall().getPosition().getY()))) {
+								
+								//System.out.println("Bola dentro da área do lateral");
+								
+								if (fieldPerc.getBall().getPosition().distanceTo(selfPerc.getPosition()) > 1 && 
+										fieldPerc.getBall().getPosition().distanceTo(selfPerc.getPosition()) < 5) {
+									//System.out.println("Corre para bola");
+									runToBall(ERROR);
+								} else if (fieldPerc.getBall().getPosition().distanceTo(selfPerc.getPosition()) <= 1) {
 									if ((selfPerc.getSide() == 1 && fieldPerc.getBall().getPosition().getX() >= 30) ||
 										(selfPerc.getSide() == -1 && fieldPerc.getBall().getPosition().getX() <= -30)) {
 										//System.out.println("Jogador: " + selfPerc.getUniformNumber() + " chutou para gol");
@@ -165,32 +241,49 @@ public class Player extends Thread {
 										else
 											kickToPoint(-52, 0, 100);
 									} else {
-										if (selfPerc.getSide() == 1)
-											kickToPoint(52, 0, 10);
-										else
-											kickToPoint(-52, 0, 10);
-										
-										runToBall(ERROR);
+										//System.out.println("Toca para alguém");
+										kickToNear();
 									}
 								} else {
 									runToPoint(new Vector2D(fieldPerc.getBall().getPosition().getX(), selfPerc.getPosition().getY()), ERROR);
-								}
-							} else if (whoHasTheBall == HasTheBall.Opponent) {
-								if (type == PlayerType.Left) {
-									runToPoint(fieldPerc.getTeamPlayer(selfPerc.getSide() == 1 ? -1 : 1, 1).getPosition(), ERROR);
-								} else if (type == PlayerType.Right) {
-									runToPoint(fieldPerc.getTeamPlayer(selfPerc.getSide() == 1 ? -1 : 1, 2).getPosition(), ERROR);
+									/*if (whoHasTheBall == HasTheBall.YourTeam) {
+										runToPoint(new Vector2D(fieldPerc.getBall().getPosition().getX(), initialPosition.getY()), ERROR);
+									} else if (whoHasTheBall == HasTheBall.Opponent) {
+										if (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) < 5) {
+											runToBall(ERROR);
+										} else {
+											if (type == PlayerType.Left) {
+												runToPoint(fieldPerc.getTeamPlayer(selfPerc.getSide() == 1 ? -1 : 1, 1).getPosition(), ERROR);
+											} else if (type == PlayerType.Right) {
+												runToPoint(fieldPerc.getTeamPlayer(selfPerc.getSide() == 1 ? -1 : 1, 2).getPosition(), ERROR);
+											}
+										}
+									} else {
+										returnToInitialPosition();
+									}*/
 								}
 							} else {
+								//System.out.println("Fora da área, go home");
 								returnToInitialPosition();
 							}
 						} else if (type == PlayerType.Defense) {
-							if (fieldPerc.getBall().getPosition().distanceTo(selfPerc.getPosition()) < 2) {
-								kickToNear();
+							if ((selfPerc.getSide() == 1 && fieldPerc.getBall().getPosition().getX() > 0) ||
+								(selfPerc.getSide() == -1 && fieldPerc.getBall().getPosition().getX() < 0)){
 								returnToInitialPosition();
+							} else {
+								if (fieldPerc.getBall().getPosition().distanceTo(selfPerc.getPosition()) < 15) {
+									runToBall(ERROR);
+								} else {
+									returnToInitialPosition();
+								}
+								
+								if (fieldPerc.getBall().getPosition().distanceTo(selfPerc.getPosition()) <= 1) {
+									kickToNear();
+									//returnToInitialPosition();
+								}
 							}
 							
-							if (selfPerc.getSide() == 1) {
+							/*if (selfPerc.getSide() == 1) {
 								if (fieldPerc.getBall().getPosition().getX() < 0) {
 									runToBall(ERROR);
 								} else {
@@ -202,15 +295,24 @@ public class Player extends Thread {
 								} else {
 									returnToInitialPosition();
 								}
-							}
+							}*/
 						} else if (type == PlayerType.GoalKeeper) {
 							if (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) < 10) {
-								runToBall(ERROR_RUN_BALL);
-								
-								if (selfPerc.getSide() == 1)
-									kickToPoint(52, 0);
-								else
-									kickToPoint(-52, 0);
+								if (lastBallPosition != null) {
+									Vector2D velocity = fieldPerc.getBall().getPosition().sub(lastBallPosition);
+									Vector2D futurePosition = fieldPerc.getBall().getPosition().sum(velocity);
+									//System.out.println("Go to future position: " + futurePosition);
+									runToPoint(futurePosition, ERROR);
+								} else {
+									runToBall(ERROR_RUN_BALL);
+								}
+							
+								if (selfPerc.getPosition().distanceTo(fieldPerc.getBall().getPosition()) <= 1) {
+									if (selfPerc.getSide() == 1)
+										kickToPoint(52, 0);
+									else
+										kickToPoint(-52, 0);
+								}
 							} else {
 								if (selfPerc.getSide() == 1)
 									runToPoint(new Vector2D(-52, 0), ERROR);
@@ -219,6 +321,8 @@ public class Player extends Thread {
 								
 								turnToBall();
 							}
+							
+							lastBallPosition = fieldPerc.getBall().getPosition();
 						}
 						
 						break;
@@ -239,7 +343,8 @@ public class Player extends Thread {
 		int index = 0;
 		
 		for (int i = 0; i < players.size(); i++) {
-			if (players.get(i) != null && players.get(i).getPosition() != null) {
+			if (players.get(i) != null && players.get(i).getPosition() != null && 
+				players.get(i).getUniformNumber() != selfPerc.getUniformNumber() && i > 1) {
 				double d = players.get(i).getPosition().distanceTo(selfPerc.getPosition());
 				if (d < maxD) {
 					maxD = d;
@@ -248,6 +353,7 @@ public class Player extends Thread {
 			}
 		}
 		
+		//System.out.println("Kick to near - de " + selfPerc.getUniformNumber() + " para " + players.get(index).getUniformNumber());
 		kickToPoint(players.get(index).getPosition());
 	}
 	
