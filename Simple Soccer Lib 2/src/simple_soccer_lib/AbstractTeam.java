@@ -1,8 +1,12 @@
 package simple_soccer_lib;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
+
+import krislet.Krislet;
 
 /**
  * Esta classe facilita lançar um time de agentes, possivelmente junto com o servidor.
@@ -88,5 +92,19 @@ public abstract class AbstractTeam {
         	return;
         }
 	}
+	
+	public final void launchKrislet(){
+		try {
+			for (int i = 0; i < this.numPlayers; i++) {
+				Krislet krislet = new Krislet(InetAddress.getByName(hostName), port, "KRISLET");
+				krislet.run();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
 
 }

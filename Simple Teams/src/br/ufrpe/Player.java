@@ -196,7 +196,15 @@ public class Player extends Thread {
 									} else {
 										y = 10;
 									}
+									
+									if (fieldPerc.getBall().getPosition().getX() + x > 52 ||
+											fieldPerc.getBall().getPosition().getX() + x < -52)
+										x = 0;
 
+									if (fieldPerc.getBall().getPosition().getY() + y > 33 ||
+											fieldPerc.getBall().getPosition().getY() + y < -33)
+										y = 0;
+									
 									//System.out.println("Jogador: " + selfPerc.getUniformNumber() + " moveu para frente da bola: " + x + ", " + y);
 									runToPoint(new Vector2D(fieldPerc.getBall().getPosition().getX() + x, fieldPerc.getBall().getPosition().getY() + y), ERROR);
 									
